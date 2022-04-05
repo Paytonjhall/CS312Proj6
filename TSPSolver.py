@@ -37,20 +37,24 @@ class TSPSolver:
     '''
 
     def fancy(self, time_allowance=60):
+	# Get/Set Variables
         results = {}
         cities = self._scenario.getCities()
         start_time = time.time()
         sortedCities = sorted(cities, key=lambda city: city._x)
+	# Call divide and conquer function
         bssf = self.divideAndConquerRec(sortedCities)
         if bssf.cost == float('inf'):
             sortedCities = sorted(cities, key=lambda city: city._y)
             bssf = self.divideAndConquerRec(sortedCities)
+		# If it doens't work, shuffle cities and try again.
             if bssf.cost == float('inf'):
                 while time.time() - start_time < time_allowance:
                     random.shuffle(sortedCities)
                     bssf = self.divideAndConquerRec(sortedCities)
                     if bssf.cost < float('inf'):
                         break
+	# Return time and route
         end_time = time.time()
         print(bssf.route)
         results['cost'] = bssf.cost
@@ -63,6 +67,7 @@ class TSPSolver:
         return results
 
     def divideAndConquerRec(self, cities):
+	# Get Number of Cities, if 1, return, if not, split them up and do it again
         cityNum = len(cities)
         if cityNum == 1:
             return TSPSolution(cities)
@@ -71,6 +76,7 @@ class TSPSolver:
         return self.combineCities(cityOne, cityTwo)
 
     def combineCities(self, cityOne, cityTwo):
+	# Make a best route, Test each city distance within that city, if its better than our best, set it.
         bestRoute = []
         cityOneArr = cityOne.route
         cityTwoArr = cityTwo.route
