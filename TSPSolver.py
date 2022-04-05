@@ -274,7 +274,43 @@ class TSPSolver:
 
 
     def greedy(self, time_allowance=60.0):
-        pass
+        start_time = time.time()
+		results = {}
+		ncities = len(self._scenario._cities)
+		matrix, lowerBound = self.createMatrix(False)
+		total = 1
+		
+		currentIndex = 0
+		path = []
+		path.append(self._scenario._cities[currentIndex])
+		# While not all cities have been visited, this algorithm finds the next shortest path,
+		# and sets unavailable paths to infinity.
+		while len(path) < ncities:
+			matrix[currentIndex, 0] = np.inf
+			nextMin = np.amin(matrix[currentIndex, :])
+			lowerBound += nextMin
+			nextIndex = np.where(matrix[currentIndex, :] == nextMin)[0][0]
+			path.append(self._scenario._cities[nextIndex])
+			matrix[:, nextIndex] += np.repeat(np.inf, ncities)
+			matrix[currentIndex, :] += np.repeat(np.inf, ncities)
+			currentIndex = nextIndex
+			total += 1
+		
+		if matrix[currentIndex, 0] == np.inf: # Check if the path is viable or not.
+			self.bssf = TSPSolution([self._scenario._cities[0], self._scenario._cities[0]])
+		else:
+			self.bssf = TSPSolution(path)
+		
+		end_time = time.time()
+		
+		results['cost'] = self.bssf.cost
+		results['time'] = end_time - start_time
+		results['count'] = None
+		results['soln'] = self.bssf
+		results['max'] = None
+		results['total'] = total
+		results['pruned'] = None
+		return results
 
     # Class used to organize data for returning to GUI
     class TSPSolution:
