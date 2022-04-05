@@ -37,26 +37,31 @@ class TSPSolver:
     '''
 
     def fancy(self, time_allowance=60):
-	# Get/Set Variables
+        # This is our fancy Algorithm
+        # Split up the cities recursively and send them to the next function
+        # Then call putTogether to put cities together and get routes.
         results = {}
         cities = self._scenario.getCities()
         start_time = time.time()
         sortedCities = sorted(cities, key=lambda city: city._x)
-	# Call divide and conquer function
-        bssf = self.divideAndConquerRec(sortedCities)
+        bssf = self.DCRecursive(sortedCities)
+
         if bssf.cost == float('inf'):
             sortedCities = sorted(cities, key=lambda city: city._y)
-            bssf = self.divideAndConquerRec(sortedCities)
-		# If it doens't work, shuffle cities and try again.
+            bssf = self.DCRecursive(sortedCities)
+            # If its not working, shuffle and try again
+
             if bssf.cost == float('inf'):
                 while time.time() - start_time < time_allowance:
                     random.shuffle(sortedCities)
-                    bssf = self.divideAndConquerRec(sortedCities)
+                    bssf = self.DCRecursive(sortedCities)
+
                     if bssf.cost < float('inf'):
                         break
-	# Return time and route
+
         end_time = time.time()
         print(bssf.route)
+
         results['cost'] = bssf.cost
         results['time'] = end_time - start_time
         results['count'] = 0
@@ -66,32 +71,40 @@ class TSPSolver:
         results['pruned'] = None
         return results
 
-    def divideAndConquerRec(self, cities):
-	# Get Number of Cities, if 1, return, if not, split them up and do it again
+    # This function will recursively split up cities
+    def DCRecursive(self, cities):
         cityNum = len(cities)
         if cityNum == 1:
             return TSPSolution(cities)
-        cityOne = self.divideAndConquerRec(cities[:cityNum // 2])
-        cityTwo = self.divideAndConquerRec(cities[cityNum // 2:])
-        return self.combineCities(cityOne, cityTwo)
+        # Break up the cities to work
+        one = self.DCRecursive(cities[:cityNum // 2])
+        two = self.DCRecursive(cities[cityNum // 2:])
+        return self.putTogether(one, two)
 
-    def combineCities(self, cityOne, cityTwo):
-	# Make a best route, Test each city distance within that city, if its better than our best, set it.
+    # Main calculation method
+    def putTogether(self, cityOne, cityTwo):
+        # Create variables.
         bestRoute = []
-        cityOneArr = cityOne.route
-        cityTwoArr = cityTwo.route
-        bestRoute = TSPSolution(cityOneArr + cityTwoArr)
+        firstArray = cityOne.route
+        secArray = cityTwo.route
+        bestRoute = TSPSolution(firstArray + secArray)
         bestCost = bestRoute.cost
-        for i in range(len(cityOneArr)):
-            for j in range(len(cityTwoArr)):
-                tempRoute = cityOneArr[:i]
-                tempRoute += cityTwoArr[j:]
-                tempRoute += cityTwoArr[:j]
-                tempRoute += cityOneArr[i:]
+        # Check routes
+        for i in range(len(firstArray)):
+
+            for j in range(len(secArray)):
+
+                tempRoute = firstArray[:i]
+                tempRoute += secArray[j:]
+                tempRoute += secArray[:j]
+                tempRoute += firstArray[i:]
+
                 tempSol = TSPSolution(tempRoute)
+
                 if tempSol.cost < bestCost:
                     bestCost = tempSol.cost
                     bestRoute = tempSol
+
         return bestRoute
 
 
@@ -281,42 +294,69 @@ class TSPSolver:
 
     def greedy(self, time_allowance=60.0):
         start_time = time.time()
-		results = {}
-		ncities = len(self._scenario._cities)
-		matrix, lowerBound = self.createMatrix(False)
-		total = 1
-		
-		currentIndex = 0
-		path = []
-		path.append(self._scenario._cities[currentIndex])
-		# While not all cities have been visited, this algorithm finds the next shortest path,
-		# and sets unavailable paths to infinity.
-		while len(path) < ncities:
-			matrix[currentIndex, 0] = np.inf
-			nextMin = np.amin(matrix[currentIndex, :])
-			lowerBound += nextMin
-			nextIndex = np.where(matrix[currentIndex, :] == nextMin)[0][0]
-			path.append(self._scenario._cities[nextIndex])
-			matrix[:, nextIndex] += np.repeat(np.inf, ncities)
-			matrix[currentIndex, :] += np.repeat(np.inf, ncities)
-			currentIndex = nextIndex
-			total += 1
-		
-		if matrix[currentIndex, 0] == np.inf: # Check if the path is viable or not.
-			self.bssf = TSPSolution([self._scenario._cities[0], self._scenario._cities[0]])
-		else:
-			self.bssf = TSPSolution(path)
-		
-		end_time = time.time()
-		
-		results['cost'] = self.bssf.cost
-		results['time'] = end_time - start_time
-		results['count'] = None
-		results['soln'] = self.bssf
-		results['max'] = None
-		results['total'] = total
-		results['pruned'] = None
-		return results
+        results = {}
+        ncities = len(self._scenario._cities)
+        matrix, lowerBound = self.createMatrix(False)
+        total = 1
+
+        currentIndex = 0
+        path = []
+        path.append(self._scenario._cities[currentIndex])
+        # While not all cities have been visited, this algorithm finds the next shortest path,
+        # and sets unavailable paths to infinity.
+        while len(path) < ncities:
+            matrix[currentIndex, 0] = np.inf
+            nextMin = np.amin(matrix[currentIndex, :])
+            lowerBound += nextMin
+            nextIndex = np.where(matrix[currentIndex, :] == nextMin)[0][0]
+            path.append(self._scenario._cities[nextIndex])
+            matrix[:, nextIndex] += np.repeat(np.inf, ncities)
+            matrix[currentIndex, :] += np.repeat(np.inf, ncities)
+            currentIndex = nextIndex
+            total += 1
+
+        if matrix[currentIndex, 0] == np.inf:  # Check if the path is viable or not.
+            self.bssf = TSPSolution([self._scenario._cities[0], self._scenario._cities[0]])
+        else:
+            self.bssf = TSPSolution(path)
+
+        end_time = time.time()
+
+        results['cost'] = self.bssf.cost
+        results['time'] = end_time - start_time
+        results['count'] = None
+        results['soln'] = self.bssf
+        results['max'] = None
+        results['total'] = total
+        results['pruned'] = None
+        return results
+
+    def createMatrix(self, reduce):
+        lowerBound = 0
+        ncities = len(self._scenario._cities)
+        matrix = np.empty((ncities, ncities))
+        matrix.fill(np.inf)
+
+        # Add the path distances into the matrix.
+        for i in range(0, ncities):
+            for j in range(0, ncities):
+                if self._scenario._edge_exists[i, j]:
+                    matrix[i, j] = self._scenario._cities[i].costTo(self._scenario._cities[j])
+
+        # Reduce the matrix if needed.
+        if reduce:
+            rowMins = np.amin(matrix, axis=1)
+            for i in range(0, ncities):
+                matrix[i, :] -= rowMins[i]
+                lowerBound += rowMins[i]
+
+            colMins = np.amin(matrix, axis=0)
+            for i in range(0, ncities):
+                if colMins[i] > 0:
+                    matrix[:, i] -= colMins[i]
+                    lowerBound += colMins[i]
+
+        return matrix, lowerBound
 
     # Class used to organize data for returning to GUI
     class TSPSolution:
